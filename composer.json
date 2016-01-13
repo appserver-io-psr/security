@@ -1,0 +1,36 @@
+{
+	"name" : "appserver-io-psr/security",
+	"description" : "PSR, for application server security implementation",
+	"homepage" : "https://github.com/appserver-io-psr/security",
+	"license" : "OSL-3.0",
+	"authors" : [{
+			"name" : "Tim Wagner",
+			"email" : "tw@appserver.io",
+			"homepage" : "https://github.com/wagnert",
+			"role" : "Developer"
+		}
+	],
+	"require" : {
+		"php" : ">=5.4.0",
+		"appserver-io/collections" : "~1.0"
+	},
+	"require-dev" : {
+		"appserver-io/build" : "~1.0"
+	},
+	"autoload" : {
+		"psr-0" : {
+			"AppserverIo\\Psr\\Security" : [
+				"src/",
+				"tests/"
+			]
+		}
+	},
+	"support" : {
+		"email" : "tw@appserver.io",
+		"issues" : "https://github.com/appserver-io-psr/security/issues",
+		"source" : "https://github.com/appserver-io-psr/security"
+	},
+	"keywords" : [
+		"application server security authentication authorization login"
+	]
+}
