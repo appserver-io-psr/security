@@ -82,11 +82,24 @@ interface LoginModuleInterface
     public function logout();
 
     /**
-     * Called by login() to acquire the username and password strings for
-     * authentication. This method does no validation of either.
+     * Abort the current login attempt.
      *
-     * @return array Array with username and password, e. g. array(0 => $name, 1 => $password)
-     * @throws \AppserverIo\Psr\Security\Auth\Login\LoginException Is thrown if name and password can't be loaded
+     * This is called after login() if the overall login attempt fails (that is, if one of the other login modules
+     * that is REQUIRED or REQUISITE fails). This method should clean up this module's saved state, if any.
+     *
+     * @return void
+     * @throws \AppserverIo\Psr\Security\Auth\Login\LoginException Is thrown if the abort fails
      */
-    public function getUsernameAndPassword();
+    public function abort();
+
+    /**
+     * Commit the current login attempt.
+     *
+     * This is called after login() if the overall login attempt succeeds (that is, all methods have satisfied all
+     * REQUIRED, REQUISITE, SUFFICIENT and OPTIONAL module requirements).
+     *
+     * @return void
+     * @throws \AppserverIo\Psr\Security\Auth\Login\LoginException Is thrown if the commit fails
+     */
+    public function commit();
 }
