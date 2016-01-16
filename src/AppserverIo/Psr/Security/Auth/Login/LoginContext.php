@@ -42,13 +42,6 @@ class LoginContext implements LoginContextInterface
 {
 
     /**
-     * The name used as the index into the configuration.
-     *
-     * @var \AppserverIo\Lang\String
-     */
-    protected $name;
-
-    /**
      * The subject to authenticate.
      *
      * @var \AppserverIo\Psr\Security\Auth\Subject
@@ -86,29 +79,27 @@ class LoginContext implements LoginContextInterface
     /**
      * Initialize the LoginContext with the passed objects.
      *
-     * @param \AppserverIo\Lang\String                                                  $name            Used as the index into the configuration
      * @param \AppserverIo\Psr\Security\Auth\Subject                                    $subject         The subject to authenticate
      * @param \AppserverIo\Psr\Security\Auth\Callback\CallbackHandlerInterface          $callbackHandler Used by the login modules to communicate with the user
      * @param \AppserverIo\Psr\Security\Auth\Login\SecurityDomainConfigurationInterface $configuration   The configuration with the login modules to perform the authentication
      */
     public function __construct(
-        String $name,
         Subject $subject,
         CallbackHandlerInterface $callbackHandler,
         SecurityDomainConfigurationInterface $configuration
     ) {
 
         // set the passed objects
-        $this->name = $name;
+        $this->subject = $subject;
         $this->callbackHandler = $callbackHandler;
         $this->configuration = $configuration;
 
         // initialize the collections
         $this->sharedState = new HashMap();
-        $this->loginModules = new ArrayList();
+        $this->moduleStack = new ArrayList();
 
         // initialize the LoginContext
-        $this->init($name);
+        $this->init();
     }
 
     /**
@@ -146,11 +137,9 @@ class LoginContext implements LoginContextInterface
     /**
      * Initialize the LoginContext with the passed name.
      *
-     * @param \AppserverIo\Lang\String $name The name of the security context to initialize
-     *
      * @return void
      */
-    protected function init(String $name)
+    protected function init()
     {
         // load the authorization configuration for the apropriate security domain
         /** @var \AppserverIo\Psr\Security\Auth\Login\AuthConfigurationInterface $authConfiguration */
@@ -184,7 +173,7 @@ class LoginContext implements LoginContextInterface
             /** @var \AppserverIo\Psr\Security\Auth\Login\ModuleInfo $moduleInfo */
             foreach ($this->getModuleStack() as $moduleInfo) {
                 // reflection the requested login module type
-                $reflectionClass = new ReflectionClass($moduleInfo->getType());
+                $reflectionClass = new ReflectionClass($moduleInfo->getType()->stringValue());
 
                 // initialize the login module and invoke the login() method
                 /** @var \AppserverIo\Psr\Security\Auth\Spi\LoginModuleInterface $loginModule */
