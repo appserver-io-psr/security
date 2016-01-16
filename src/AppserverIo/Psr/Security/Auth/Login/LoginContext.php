@@ -70,6 +70,13 @@ class LoginContext implements LoginContextInterface
     protected $moduleStack;
 
     /**
+     * The HashMap to share the state between the login modules.
+     *
+     * @var \AppserverIo\Collections\HashMap
+     */
+    protected $sharedState;
+
+    /**
      * TRUE if the login has been successful, else FALSE.
      *
      * @var boolean
@@ -165,13 +172,13 @@ class LoginContext implements LoginContextInterface
      */
     public function login()
     {
+        // login has NOT succeeded yet
+        $this->loginSucceeded = false;
 
-        try {
-            // login has NOT succeeded yet
-            $this->loginSucceeded = false;
-
-            /** @var \AppserverIo\Psr\Security\Auth\Login\ModuleInfo $moduleInfo */
-            foreach ($this->getModuleStack() as $moduleInfo) {
+        // process the login modules and try to authenticate the user
+        /** @var \AppserverIo\Psr\Security\Auth\Login\ModuleInfo $moduleInfo */
+        foreach ($this->getModuleStack() as $moduleInfo) {
+            try {
                 // reflection the requested login module type
                 $reflectionClass = new ReflectionClass($moduleInfo->getType()->stringValue());
 
@@ -181,15 +188,15 @@ class LoginContext implements LoginContextInterface
                 $loginModule->initialize($this->subject, $this->callbackHandler, $this->sharedState, $moduleInfo->getParams());
                 $loginModule->login();
                 $loginModule->commit();
+
+            } catch (LoginException $le) {
+                $loginModule->abort();
+                throw $le;
             }
-
-            // login has been successfull yet
-            $this->loginSucceeded = true;
-
-        } catch (LoginException $le) {
-            $loginModule->abort();
-            throw $le;
         }
+
+        // login has been successfull yet
+        $this->loginSucceeded = true;
     }
 
     /**

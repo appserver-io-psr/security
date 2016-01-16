@@ -52,8 +52,8 @@ class ModuleInfo
     /**
      * Initializes the instance with the login module name and initialization params.
      *
-     * @param \AppserverIo\Lang\String         $type
-     * @param \AppserverIo\Collections\HashMap $params
+     * @param \AppserverIo\Lang\String         $type   The login module class name
+     * @param \AppserverIo\Collections\HashMap $params The parameters for the initialize() method
      */
     public function __construct(String $type, HashMap $params)
     {
