@@ -173,30 +173,53 @@ class LoginContext implements LoginContextInterface
     public function login()
     {
         // login has NOT succeeded yet
-        $this->loginSucceeded = false;
+        $failure = false;
+
+        // create an array for the initialized login modules
+        $loginModules = array();
 
         // process the login modules and try to authenticate the user
         /** @var \AppserverIo\Psr\Security\Auth\Login\ModuleInfo $moduleInfo */
-        foreach ($this->getModuleStack() as $moduleInfo) {
+        foreach ($this->getModuleStack() as $index => $moduleInfo) {
             try {
                 // reflection the requested login module type
                 $reflectionClass = new ReflectionClass($moduleInfo->getType()->stringValue());
 
                 // initialize the login module and invoke the login() method
-                /** @var \AppserverIo\Psr\Security\Auth\Spi\LoginModuleInterface $loginModule */
-                $loginModule = $reflectionClass->newInstance();
-                $loginModule->initialize($this->subject, $this->callbackHandler, $this->sharedState, $moduleInfo->getParams());
-                $loginModule->login();
-                $loginModule->commit();
+                /** @var \AppserverIo\Psr\Security\Auth\Spi\LoginModuleInterface $loginModules[$index] */
+                $loginModules[$index] = $reflectionClass->newInstance();
+                $loginModules[$index]->initialize($this->subject, $this->callbackHandler, $this->sharedState, $moduleInfo->getParams());
+
+                // query whether or not the login attempt failed
+                /* if ($loginModules[$index]->login() === false) {
+                    if ($moduleInfo[$index]->hasControlFlag(REQUESITE)) {
+                        throw new LoginException("REQUISITE module " . $moduleInfo[i]->getLoginModuleName() . " failed");
+                    } elseif ($moduleInfo[$index]->hasControlFlag(REQUIRED)) {
+                        $failure = true;
+                    } else {
+                        // do nothing
+                    }
+
+                } else {
+                    $moduleInfo[$index]->hasControlFlag(SUFFICIENT);
+                    break;
+                } */
 
             } catch (LoginException $le) {
-                $loginModule->abort();
+                $loginModules[$index]->abort();
                 throw $le;
             }
         }
 
-        // login has been successfull yet
-        $this->loginSucceeded = true;
+        // throw an exception if one of the RQUIRED login modules failed
+        if ($this->failure === true) {
+            throw new LoginException ("Not all REQUIRED modules succeeded");
+        }
+
+        // invoke the commit() method on the processed login modules
+        foreach ($this->getModuleStack() as $indx => $moduleInfo) {
+            $loginModules[$index]->commit();
+        }
     }
 
     /**
