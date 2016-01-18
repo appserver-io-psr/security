@@ -22,6 +22,7 @@ namespace AppserverIo\Psr\Security\Auth\Login;
 
 use AppserverIo\Lang\String;
 use AppserverIo\Collections\HashMap;
+use AppserverIo\Lang\Boolean;
 
 /**
  * Contain's information about a login module's configuration.
@@ -50,15 +51,24 @@ class ModuleInfo
     protected $params;
 
     /**
+     * The login module's control flag, one of Required, Requisite, Sufficient or Optional.
+     *
+     * @var \AppserverIo\Lang\String
+     */
+    protected $controlFlag;
+
+    /**
      * Initializes the instance with the login module name and initialization params.
      *
-     * @param \AppserverIo\Lang\String         $type   The login module class name
-     * @param \AppserverIo\Collections\HashMap $params The parameters for the initialize() method
+     * @param \AppserverIo\Lang\String         $type        The login module class name
+     * @param \AppserverIo\Collections\HashMap $params      The parameters for the initialize() method
+     * @param \AppserverIo\Lang\String         $controlFlag The login module's control flag
      */
-    public function __construct(String $type, HashMap $params)
+    public function __construct(String $type, HashMap $params, String $controlFlag)
     {
         $this->type = $type;
         $this->params = $params;
+        $this->controlFlag = $controlFlag;
     }
 
     /**
@@ -79,5 +89,25 @@ class ModuleInfo
     public function getParams()
     {
         return $this->params;
+    }
+
+    /**
+     * Return's the login module's control flag.
+     *
+     * @return \AppserverIo\Lang\String The control flag
+     */
+    public function getControlFlag()
+    {
+        return $this->controlFlag;
+    }
+
+    /**
+     * Queries whether or not the login module has the passed control flag or not.
+     *
+     * @param \AppserverIo\Lang\String $controlFlag TRUE if the login module has the control flag, else FALSE
+     */
+    public function hasControlFlag(String $controlFlag)
+    {
+        return $this->controlFlag->equals($controlFlag);
     }
 }

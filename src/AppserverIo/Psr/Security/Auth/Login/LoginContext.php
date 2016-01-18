@@ -157,8 +157,9 @@ class LoginContext implements LoginContextInterface
                 // load the login modules class name and initialization parameters
                 $type = new String($loginModule->getType());
                 $params = new HashMap($loginModule->getParamsAsArray());
+                $controlFlag = new String($loginModule->getFlag());
                 // add the module information to the stack
-                $this->addModuleInfo(new ModuleInfo($type, $params));
+                $this->addModuleInfo(new ModuleInfo($type, $params, $controlFlag));
             }
         }
     }
@@ -191,34 +192,38 @@ class LoginContext implements LoginContextInterface
                 $loginModules[$index]->initialize($this->subject, $this->callbackHandler, $this->sharedState, $moduleInfo->getParams());
 
                 // query whether or not the login attempt failed
-                /* if ($loginModules[$index]->login() === false) {
-                    if ($moduleInfo[$index]->hasControlFlag(REQUESITE)) {
-                        throw new LoginException("REQUISITE module " . $moduleInfo[i]->getLoginModuleName() . " failed");
-                    } elseif ($moduleInfo[$index]->hasControlFlag(REQUIRED)) {
+                if ($loginModules[$index]->login() === false) {
+                    // we need to be aware of the login module's control flag
+                    if ($moduleInfo->hasControlFlag(new String(LoginModuleConfigurationInterface::REQUISITE))) {
+                        throw new LoginException(sprintf('REQUISITE module %s failed', $moduleInfo->getLoginModuleName()));
+                    } elseif ($moduleInfo->hasControlFlag(new String(LoginModuleConfigurationInterface::REQUIRED))) {
                         $failure = true;
                     } else {
-                        // do nothing
+                        // do nothing, because we're OPTIONAL or SUFFICIENT
                     }
 
                 } else {
-                    $moduleInfo[$index]->hasControlFlag(SUFFICIENT);
+                    // if the login module has the SUFFICIENT flag, we stop processing
+                    $moduleInfo->hasControlFlag(new String(LoginModuleConfigurationInterface::SUFFICIENT));
                     break;
-                } */
+                }
 
             } catch (LoginException $le) {
+                // abort the login process
                 $loginModules[$index]->abort();
+                // re-throw the exception
                 throw $le;
             }
         }
 
         // throw an exception if one of the RQUIRED login modules failed
-        if ($this->failure === true) {
-            throw new LoginException ("Not all REQUIRED modules succeeded");
+        if ($failure === true) {
+            throw new LoginException('Not all REQUIRED modules succeeded');
         }
 
         // invoke the commit() method on the processed login modules
-        foreach ($this->getModuleStack() as $indx => $moduleInfo) {
-            $loginModules[$index]->commit();
+        foreach ($loginModules as $loginModule) {
+            $loginModule->commit();
         }
     }
 
