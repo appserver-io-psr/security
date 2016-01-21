@@ -142,6 +142,26 @@ class LoginContext implements LoginContextInterface
     }
 
     /**
+     * Return's the login context's shared state map.
+     *
+     * @return \AppserverIo\Collections\HashMap The map with the shared state data
+     */
+    protected function getSharedState()
+    {
+        return $this->sharedState;
+    }
+
+    /**
+     * Return's the callback handler used by the login modules to communicate with the user.
+     *
+     * @return \AppserverIo\Psr\Security\Auth\Callback\CallbackHandlerInterface The callback handler
+     */
+    protected function getCallbackHandler()
+    {
+        return $this->callbackHandler;
+    }
+
+    /**
      * Initialize the LoginContext with the passed name.
      *
      * @return void
@@ -157,14 +177,38 @@ class LoginContext implements LoginContextInterface
                 // load the login modules class name and initialization parameters
                 $type = new String($loginModule->getType());
                 $params = new HashMap($loginModule->getParamsAsArray());
+                $controlFlag = new String($loginModule->getFlag());
                 // add the module information to the stack
-                $this->addModuleInfo(new ModuleInfo($type, $params));
+                $this->addModuleInfo(new ModuleInfo($type, $params, $controlFlag));
             }
         }
     }
 
     /**
+     * Create's a new instance of the login module with the passed class name.
+     *
+     * @param \AppserverIo\Lang\String $className The login module class name
+     *
+     * @return \AppserverIo\Psr\Security\Auth\Spi\LoginModuleInterface The login module instance
+     */
+    protected function createLoginModuleInstance(String $className)
+    {
+        $reflectionClass = new ReflectionClass($className->stringValue());
+        return $reflectionClass->newInstance();
+    }
+
+    /**
      * Perform the authentication.
+     *
+     * REQUIRED:   The login module is required to succeed for the authentication to be successful. If any required
+     *             module fails, the authentication will fail. The remaining login modules in the stack will be called
+     *             regardless of the outcome of the authentication.
+     * REQUISITE:  The login module is required to succeed. If it succeeds, authentication continues down the login
+     *             stack. If it fails, control immediately returns to the application.
+     * SUFFICIENT: The login module is not required to succeed. If it does succeed, control immediately returns to the
+     *             application. If it fails, authentication continues down the login stack.
+     * OPTIONAL:   The login module is not required to succeed. Authentication still continues to proceed down the
+     *             login stack regardless of whether the login module succeeds or fails.
      *
      * @return void
      * @throw \AppserverIo\Psr\Security\Auth\Login\LoginException Is thrown if the authentication fails
@@ -172,35 +216,63 @@ class LoginContext implements LoginContextInterface
      */
     public function login()
     {
+
         // login has NOT succeeded yet
-        $this->loginSucceeded = false;
+        $failure = false;
+
+        // the array containing the initialized login modules
+        $loginModules = array();
 
         // process the login modules and try to authenticate the user
         /** @var \AppserverIo\Psr\Security\Auth\Login\ModuleInfo $moduleInfo */
-        foreach ($this->getModuleStack() as $moduleInfo) {
+        foreach ($this->getModuleStack() as $index => $moduleInfo) {
             try {
-                // reflection the requested login module type
-                $reflectionClass = new ReflectionClass($moduleInfo->getType()->stringValue());
-
                 // initialize the login module and invoke the login() method
-                /** @var \AppserverIo\Psr\Security\Auth\Spi\LoginModuleInterface $loginModule */
-                $loginModule = $reflectionClass->newInstance();
-                $loginModule->initialize($this->subject, $this->callbackHandler, $this->sharedState, $moduleInfo->getParams());
-                $loginModule->login();
-                $loginModule->commit();
+                /** @var \AppserverIo\Psr\Security\Auth\Spi\LoginModuleInterface $loginModules[$index] */
+                $loginModules[$index] = $this->createLoginModuleInstance($moduleInfo->getType());
+                $loginModules[$index]->initialize($this->getSubject(), $this->getCallbackHandler(), $this->getSharedState(), $moduleInfo->getParams());
+
+                // query whether or not the login attempt failed
+                if ($loginModules[$index]->login() === true) {
+                    // commit the login attempt
+                    $loginModules[$index]->commit();
+                    // if the login module has the SUFFICIENT flag, we stop processing
+                    if ($moduleInfo->hasControlFlag(new String(LoginModuleConfigurationInterface::SUFFICIENT))) {
+                        break;
+                    }
+
+                } else {
+                    // we need to be aware of the login module's control flag
+                    if ($moduleInfo->hasControlFlag(new String(LoginModuleConfigurationInterface::REQUISITE))) {
+                        throw new LoginException(sprintf('REQUISITE module %s failed', get_class($loginModules[$index])));
+                    } elseif ($moduleInfo->hasControlFlag(new String(LoginModuleConfigurationInterface::REQUIRED))) {
+                        $failure = true;
+                    } else {
+                        // do nothing, because we're OPTIONAL or SUFFICIENT
+                    }
+                }
 
             } catch (LoginException $le) {
-                $loginModule->abort();
+                // abort the login process
+                $loginModules[$index]->abort();
+                // re-throw the exception
                 throw $le;
             }
         }
 
-        // login has been successfull yet
-        $this->loginSucceeded = true;
+        // query whether or not one of the required login modules failed
+        if ($failure === true) {
+            // abort the REQUIRED login modules
+            foreach ($loginModules as $loginModule) {
+                $loginModule->abort();
+            }
+            // throw an exception if one of the REQUIRED login modules failed
+            throw new LoginException('Not all REQUIRED modules succeeded');
+        }
     }
 
     /**
-     * Logout the Subject.
+     * Logout the subject.
      *
      * @return void
      * @throw \AppserverIo\Psr\Security\Auth\Login\LoginException Is thrown if the logout fails
@@ -209,6 +281,22 @@ class LoginContext implements LoginContextInterface
     public function logout()
     {
 
+        // process the login modules and try to authenticate the user
+        /** @var \AppserverIo\Psr\Security\Auth\Login\ModuleInfo $moduleInfo */
+        foreach ($this->getModuleStack() as $moduleInfo) {
+            try {
+                // initialize the login module and invoke the logout() method
+                /** @var \AppserverIo\Psr\Security\Auth\Spi\LoginModuleInterface $loginModule */
+                $loginModule = $this->createLoginModuleInstance($moduleInfo->getType());
+                $loginModule->initialize($this->getSubject(), $this->getCallbackHandler(), $this->getSharedState(), $moduleInfo->getParams());
+
+                // query whether or not the login attempt failed
+                $loginModule->logout();
+
+            } catch (\Exception $e) {
+                throw new LoginException($e->__toString());
+            }
+        }
     }
 
     /**

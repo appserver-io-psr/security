@@ -33,6 +33,40 @@ interface LoginModuleConfigurationInterface
 {
 
     /**
+     * The LoginModule is required to succeed. If it succeeds or fails, authentication still continues to
+     * proceed down the LoginModule list.
+     *
+     * @var string
+     */
+    const REQUIRED = 'Required';
+
+    /**
+     * The LoginModule is required to succeed. If it succeeds, authentication continues down the LoginModule
+     * list. If it fails, control immediately returns to the application (authentication does not proceed
+     * down the LoginModule list).
+     *
+     * @var string
+     */
+    const REQUISITE = 'Requisite';
+
+    /**
+     * The LoginModule is not required to succeed.  If it does succeed, control immediately  returns to the
+     * application (authentication does not proceed down the LoginModule list). If it fails, authentication
+     * continues down the LoginModule list.
+     *
+     * @var string
+     */
+    const SUFFICIENT = 'Sufficient';
+
+    /**
+     * The LoginModule is not required to succeed.  If it succeeds or fails, authentication still continues
+     * to proceed down the LoginModule list.
+     *
+     * @var string
+     */
+    const OPTIONAL = 'Optional';
+
+    /**
      * Returns's the login module type.
      *
      * @return string The login module type
