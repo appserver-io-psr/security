@@ -22,7 +22,6 @@ namespace AppserverIo\Psr\Security\Auth\Login;
 
 use AppserverIo\Lang\String;
 use AppserverIo\Collections\HashMap;
-use AppserverIo\Lang\Boolean;
 
 /**
  * Contain's information about a login module's configuration.
@@ -105,6 +104,8 @@ class ModuleInfo
      * Queries whether or not the login module has the passed control flag or not.
      *
      * @param \AppserverIo\Lang\String $controlFlag TRUE if the login module has the control flag, else FALSE
+     *
+     * @return boolean TRUE if the passed control flag matches, else FALSE
      */
     public function hasControlFlag(String $controlFlag)
     {
