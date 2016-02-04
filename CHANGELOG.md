@@ -1,3 +1,13 @@
+# Version 1.3.0
+
+## Bugfixes
+
+* None
+
+## Features
+
+* Add new class with constants that are necessary to implement generic authenticator implementations
+
 # Version 1.2.0
 
 ## Bugfixes
