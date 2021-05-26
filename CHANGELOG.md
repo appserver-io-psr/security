@@ -1,3 +1,13 @@
+# Version 1.5.0
+
+## Bugfixes
+
+* None
+
+## Features
+
+* Add new class AuthorizationCodeCallback
+
 # Version 1.4.0
 
 ## Bugfixes
